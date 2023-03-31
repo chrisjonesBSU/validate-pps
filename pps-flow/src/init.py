@@ -24,27 +24,27 @@ def get_parameters():
 
     ### SYSTEM GENERATION PARAMETERS ###
     parameters["density"] = [1.0]
-    parameters["chain_lengths"] = [20]
+    parameters["chain_lengths"] = [5]
     parameters["n_compounds"] = [40]
-    parameters["remove_hydrogens"] = [True, False]
-    parameters["remove_charges"] = [True, False]
+    parameters["remove_hydrogens"] = [True]
+    parameters["remove_charges"] = [True]
 
     ### SIMULATION PARAMETERS ###
     parameters["tau_kt"] = [0.1]
     parameters["dt"] = [0.0001]
     parameters["r_cut"] = [2.5]
     parameters["sim_seed"] = [42]
-    parameters["shrink_steps"] = [1e6]
+    parameters["shrink_steps"] = [5e5]
     parameters["shrink_period"] = [100]
     parameters["shrink_kT"] = [6.5]
-    parameters["log_write_freq"] = [10000]
-    parameters["gsd_write_freq"] = [50000]
+    parameters["gsd_write_freq"] = [10000]
+    parameters["log_write_freq"] = [500]
 
     ### Quench related parameters ###
     parameters["kT"] = [6.5]
-    parameters["n_steps"] = [1e7]
-    parameters["extra_steps"] = [2e6]
-    parameters["neff_samples"] = [5000]
+    parameters["n_steps"] = [5e5]
+    parameters["extra_steps"] = [1e6]
+    parameters["neff_samples"] = [100]
     return list(parameters.keys()), list(product(*parameters.values()))
 
 

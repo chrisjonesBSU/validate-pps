@@ -75,7 +75,8 @@ def sample(job):
     from hoomd_polymers.forcefields import OPLS_AA_PPS
     from hoomd_polymers.sim import Simulation
     from hoomd_polymers.molecules import PPS
-    from cmeutils.sampling import is_equilibrated, equil_sample 
+    from cmeutils.sampling import is_equilibrated, equil_sample
+    import numpy as np
 
     with job:
         print("JOB ID NUMBER:")
@@ -139,16 +140,19 @@ def sample(job):
         print("-----------------")
         sim.run_NVT(kT=job.sp.kT, n_steps=job.sp.n_steps, tau_kt=job.sp.tau_kt)
 
-        job.doc.shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq) 
+        job.doc.shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq)
         extra_runs = 0
         equilibrated = False
         while not equilibrated:
         # Open up log file, see if pressure is equilibrated
             data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
             pressure = data["mdcomputeThermodynamicQuantitiespressure"]
-            equilibrated = is_equil(pressure[job.doc.shrink_cut:], threshold_neff=job.sp.neff_samples)
+            equilibrated = is_equilibrated(
+                    pressure[job.doc.shrink_cut:],
+                    threshold_neff=job.sp.neff_samples
+            )[0]
             print("-----------------")
-            print(f"Not yet equilibrated. Starting run {run_num + 1}.")
+            print(f"Not yet equilibrated. Starting run {extra_runs + 1}.")
             print("-----------------")
             sim.run_NVT(kT=job.sp.kT, n_steps=job.sp.extra_steps, tau_kt=job.sp.tau_kt)
             extra_runs += 1
@@ -158,20 +162,21 @@ def sample(job):
         print("-----------------")
         data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
         pressure = data["mdcomputeThermodynamicQuantitiespressure"]
-        uncorr_sample, uncorr_indices, prod_start, ineff, Neff = equil_sample(
+        uncorr_sample, uncorr_indices, prod_start, Neff = equil_sample(
                 pressure[job.doc.shrink_cut:],
                 threshold_fraction=0.50,
-                threshold_neff=5000
+                threshold_neff=job.sp.neff_samples
         )
         job.doc.uncorr_indices = list(uncorr_indices)
         job.doc.prod_start = prod_start
+        job.doc.Neff = Neff
         job.doc.average_pressure = np.mean(uncorr_sample)
         job.doc.pressure_std = np.std(uncorr_sample)
         job.doc.pressure_sem = np.std(uncorr_sample) / (len(uncorr_sample)**0.5)
 
         job.doc.total_steps = job.sp.n_steps + (extra_runs*job.sp.extra_steps)
         job.doc.total_time_ns = job.doc.total_steps*job.doc.real_timestep.to("ns")
-        job.doc.extra_runs = extra_runs 
+        job.doc.extra_runs = extra_runs
         job.doc.done = True
 
 
