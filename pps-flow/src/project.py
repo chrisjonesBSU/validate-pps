@@ -167,15 +167,15 @@ def sample(job):
                 threshold_fraction=0.50,
                 threshold_neff=job.sp.neff_samples
         )
-        job.doc.uncorr_indices = list(uncorr_indices)
+        np.savetxt("sample_indices.txt", uncorr_indices)
         job.doc.prod_start = prod_start
         job.doc.Neff = Neff
         job.doc.average_pressure = np.mean(uncorr_sample)
         job.doc.pressure_std = np.std(uncorr_sample)
-        job.doc.pressure_sem = np.std(uncorr_sample) / (len(uncorr_sample)**0.5)
+        job.doc.pressure_sem = np.std(uncorr_sample)/(len(uncorr_sample)**0.5)
 
         job.doc.total_steps = job.sp.n_steps + (extra_runs*job.sp.extra_steps)
-        job.doc.total_time_ns = job.doc.total_steps*job.doc.real_timestep
+        job.doc.total_time = job.doc.total_steps*job.doc.real_timestep
         job.doc.extra_runs = extra_runs
         job.doc.done = True
 
