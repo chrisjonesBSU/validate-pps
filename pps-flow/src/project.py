@@ -135,18 +135,18 @@ def sample(job):
         print("-----------------")
         sim.run_NVT(kT=job.sp.kT, n_steps=job.sp.n_steps, tau_kt=job.sp.tau_kt)
 
+        job.doc.shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq) 
         run_num = 1
         equilibrated = False
         while not equilibrated:
         # Open up log file, see if pressure is equilibrated
             data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
             pressure = data["mdcomputeThermodynamicQuantitiespressure"]
-            shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq) 
-            equilibrated = is_equil(pressure[shrink_cut:], threshold_neff=5000)
+            equilibrated = is_equil(pressure[job.doc.shrink_cut:], threshold_neff=5000)
             print("-----------------")
             print(f"Not yet equilibrated. Starting run {run_num + 1}.")
             print("-----------------")
-            sim.run_NVT(kT=job.sp.kT, n_steps=2e6, tau_kt=job.sp.tau_kt)
+            sim.run_NVT(kT=job.sp.kT, n_steps=job.sp.extra_steps, tau_kt=job.sp.tau_kt)
             run_num += 1
 
         print("-----------------")
@@ -154,9 +154,8 @@ def sample(job):
         print("-----------------")
         data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
         pressure = data["mdcomputeThermodynamicQuantitiespressure"]
-        shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq) 
         uncorr_sample, uncorr_indices, prod_start, ineff, Neff = equil_sample(
-                pressure[shrink_cut:],
+                pressure[job.doc.shrink_cut:],
                 threshold_fraction=0.50,
                 threshold_neff=5000
         )
@@ -165,6 +164,9 @@ def sample(job):
         job.doc.average_pressure = np.mean(uncorr_sample)
         job.doc.pressure_std = np.std(uncorr_sample)
         job.doc.pressure_sem = np.std(uncorr_sample) / (len(uncorr_sample)**0.5)
+
+        job.doc.total_steps = job.sp.n_steps + (run_num * job.sp.extra_steps)
+        job.doc.total_time_ns = job.doc.total_steps*job.doc.real_timestep.to("ns")
         job.doc.n_runs = run_num
         job.doc.done = True
 

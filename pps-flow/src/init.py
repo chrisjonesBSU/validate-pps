@@ -43,6 +43,7 @@ def get_parameters():
     ### Quench related parameters ###
     parameters["kT"] = [6.5]
     parameters["n_steps"] = [1e7]
+    parameters["extra_steps"] = [2e6]
     return list(parameters.keys()), list(product(*parameters.values()))
 
 def main():
