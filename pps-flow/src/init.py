@@ -38,6 +38,8 @@ def get_parameters():
     parameters["shrink_steps"] = [1e6]
     parameters["shrink_period"] = [100]
     parameters["shrink_kT"] = [6.5]
+    parameters["log_write_freq"] = [10000]
+    parameters["gsd_write_freq"] = [50000]
     ### Quench related parameters ###
     parameters["kT"] = [6.5]
     parameters["n_steps"] = [1e7]

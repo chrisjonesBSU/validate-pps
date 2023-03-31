@@ -75,6 +75,7 @@ def sample(job):
     from hoomd_polymers.forcefields import OPLS_AA_PPS
     from hoomd_polymers.sim import Simulation
     from hoomd_polymers.molecules import PPS
+    from cmeutils.sampling import is_equilibrated, equil_sample 
 
     with job:
         print("JOB ID NUMBER:")
@@ -103,19 +104,21 @@ def sample(job):
 
         gsd_path = os.path.join(job.ws, "trajectory.gsd")
         log_path = os.path.join(job.ws, "sim_data.txt")
-
         sim = Simulation(
             initial_state=system.hoomd_snapshot,
             forcefield=system.hoomd_forcefield,
-            gsd_write_freq=50000,
+            dt=job.sp.dt,
+            gsd_write_freq=job.sp.gsd_write_freq,
             gsd_file_name=gsd_path,
             log_file_name=log_path,
-            log_write_freq=5000
+            log_write_freq=job.sp.log_write_freq
         )
         sim.pickle_forcefield(job.fn("pps_forcefield.pickle"))
 
         target_box = system.target_box*10/job.doc.ref_distance
         job.doc.target_box = target_box
+        job.doc.real_timestep = sim.real_timestep.to("fs")
+        job.doc.real_timestep_units = "fs"
 
         sim.run_update_volume(
                 final_box_lengths=target_box,
@@ -131,7 +134,25 @@ def sample(job):
                 tau_kt=job.sp.tau_kt
         )
 
+        run_num = 1
+        equilibrated = False
+        while not equilibrated:
         # Open up log file, see if pressure is equilibrated
+            data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
+            pressure = data["mdcomputeThermodynamicQuantitiespressure"]
+            shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq) 
+            equilibrated = is_equil(pressure[shrink_cut:], threshold_neff=5000)
+            print(f"Not yet equilibrated. Starting run {run_num + 1}.")
+            sim.run_NVT(kT=job.sp.kT, n_steps=2e6, tau_kt=job.sp.tau_kt)
+            run_num += 1
+
+        print("Is equilibrated; starting sampling...")
+        data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
+        pressure = data["mdcomputeThermodynamicQuantitiespressure"]
+        shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq) 
+        
+
+
 
 
 
