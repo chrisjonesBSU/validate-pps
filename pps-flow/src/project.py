@@ -128,12 +128,17 @@ def sample(job):
         print("-----------------")
         print("Running shrink step...")
         print("-----------------")
+        kT_ramp = sim.temperature_ramp(
+                n_steps=job.sp.shrink_steps,
+                kT_start=job.sp.shrink_kT,
+                kT_final=job.sp.kT
+        )
         sim.run_update_volume(
                 final_box_lengths=target_box,
                 n_steps=job.sp.shrink_steps,
                 period=job.sp.shrink_period,
                 tau_kt=job.sp.tau_kt,
-                kT=job.sp.shrink_kT
+                kT=kT_ramp
         )
         print("-----------------")
         print("Shrink step finished; running NVT...")
@@ -144,22 +149,35 @@ def sample(job):
         extra_runs = 0
         equilibrated = False
         while not equilibrated:
-        # Open up log file, see if pressure is equilibrated
+        # Open up log file, see if pressure and PE are equilibrated
             data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
             pressure = data["mdcomputeThermodynamicQuantitiespressure"]
-            equilibrated = is_equilibrated(
+            pe = data["mdcomputeThermodynamicQuantitiespotential_energy"]
+            pressure_eq = is_equilibrated(
                     pressure[job.doc.shrink_cut:],
                     threshold_neff=job.sp.neff_samples
             )[0]
+            pe_eq = is_equilibrated(
+                    pe[job.doc.shrink_cut:],
+                    threshold_neff=job.sp.neff_samples
+            )[0]
+
+            if pressure_eq is True and pe_eq is True:
+                equilibrated = True
             print("-----------------")
             print(f"Not yet equilibrated. Starting run {extra_runs + 1}.")
             print("-----------------")
-            sim.run_NVT(kT=job.sp.kT, n_steps=job.sp.extra_steps, tau_kt=job.sp.tau_kt)
+            sim.run_NVT(
+                    kT=job.sp.kT,
+                    n_steps=job.sp.extra_steps,
+                    tau_kt=job.sp.tau_kt
+            )
             extra_runs += 1
 
         print("-----------------")
         print("Is equilibrated; starting sampling...")
         print("-----------------")
+        # Log pressure
         data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
         pressure = data["mdcomputeThermodynamicQuantitiespressure"]
         uncorr_sample, uncorr_indices, prod_start, Neff = equil_sample(
@@ -167,17 +185,33 @@ def sample(job):
                 threshold_fraction=0.50,
                 threshold_neff=job.sp.neff_samples
         )
-        np.savetxt("sample_indices.txt", uncorr_indices)
-        job.doc.prod_start = prod_start
-        job.doc.Neff = Neff
+        np.savetxt("pressure_sample_indices.txt", uncorr_indices)
+        np.savetxt("pressure.txt", uncorr_sample)
+        # Save pressure results in the job doc
+        job.doc.pressure_start = prod_start
         job.doc.average_pressure = np.mean(uncorr_sample)
         job.doc.pressure_std = np.std(uncorr_sample)
         job.doc.pressure_sem = np.std(uncorr_sample)/(len(uncorr_sample)**0.5)
-
+        # Log potential energy
+        pe = data["mdcomputeThermodynamicQuantitiespotential_energy"]
+        uncorr_sample, uncorr_indices, prod_start, Neff = equil_sample(
+                pe[job.doc.shrink_cut:],
+                threshold_fraction=0.50,
+                threshold_neff=job.sp.neff_samples
+        )
+        np.savetxt("pe_sample_indices.txt", uncorr_indices)
+        np.savetxt("potential_energy.txt", uncorr_sample)
+        # Save potential energy results in the job doc
+        job.doc.pe_start = prod_start
+        job.doc.average_pe = np.mean(uncorr_sample)
+        job.doc.pe_std = np.std(uncorr_sample)
+        job.doc.pe_sem = np.std(uncorr_sample)/(len(uncorr_sample)**0.5)
+        # Add a few more things to the job job
         job.doc.total_steps = job.sp.n_steps + (extra_runs*job.sp.extra_steps)
         job.doc.total_time = job.doc.total_steps*job.doc.real_timestep
         job.doc.extra_runs = extra_runs
         job.doc.done = True
+        job.doc.box_nm = sim.box_lengths.to("nm")
 
 
 if __name__ == "__main__":
