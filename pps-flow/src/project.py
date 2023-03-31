@@ -116,6 +116,10 @@ def sample(job):
         )
         sim.pickle_forcefield(job.fn("pps_forcefield.pickle"))
 
+        sim.reference_distance = system.reference_distance
+        sim.reference_mass = system.reference_mass
+        sim.reference_energy = system.reference_energy
+
         target_box = system.target_box*10/job.doc.ref_distance
         job.doc.target_box = target_box
         job.doc.real_timestep = sim.real_timestep.to("fs")
