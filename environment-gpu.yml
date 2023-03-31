@@ -1,11 +1,11 @@
-name: hoomd-polymers 
+name: pps 
 channels:
   - conda-forge
 dependencies:
   - foyer
   - freud
   - gsd
-  - hoomd>3.0=*gpu*
+  - hoomd=3.7=*gpu*
   - matplotlib
   - mbuild
   - mdanalysis
