@@ -146,7 +146,7 @@ def sample(job):
         # Open up log file, see if pressure is equilibrated
             data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
             pressure = data["mdcomputeThermodynamicQuantitiespressure"]
-            equilibrated = is_equil(pressure[job.doc.shrink_cut:], threshold_neff=5000)
+            equilibrated = is_equil(pressure[job.doc.shrink_cut:], threshold_neff=job.sp.neff_samples)
             print("-----------------")
             print(f"Not yet equilibrated. Starting run {run_num + 1}.")
             print("-----------------")

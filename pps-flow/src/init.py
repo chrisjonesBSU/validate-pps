@@ -26,7 +26,6 @@ def get_parameters():
     parameters["density"] = [1.0]
     parameters["chain_lengths"] = [20]
     parameters["n_compounds"] = [40]
-    parameters["system_kwargs"] = [None]
     parameters["remove_hydrogens"] = [True, False]
     parameters["remove_charges"] = [True, False]
 
@@ -40,11 +39,14 @@ def get_parameters():
     parameters["shrink_kT"] = [6.5]
     parameters["log_write_freq"] = [10000]
     parameters["gsd_write_freq"] = [50000]
+
     ### Quench related parameters ###
     parameters["kT"] = [6.5]
     parameters["n_steps"] = [1e7]
     parameters["extra_steps"] = [2e6]
+    parameters["neff_samples"] = [5000]
     return list(parameters.keys()), list(product(*parameters.values()))
+
 
 def main():
     project = signac.init_project("pps") # Set the signac project name
