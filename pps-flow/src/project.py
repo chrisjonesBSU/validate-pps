@@ -140,7 +140,7 @@ def sample(job):
         sim.run_NVT(kT=job.sp.kT, n_steps=job.sp.n_steps, tau_kt=job.sp.tau_kt)
 
         job.doc.shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq) 
-        run_num = 1
+        extra_runs = 0
         equilibrated = False
         while not equilibrated:
         # Open up log file, see if pressure is equilibrated
@@ -151,7 +151,7 @@ def sample(job):
             print(f"Not yet equilibrated. Starting run {run_num + 1}.")
             print("-----------------")
             sim.run_NVT(kT=job.sp.kT, n_steps=job.sp.extra_steps, tau_kt=job.sp.tau_kt)
-            run_num += 1
+            extra_runs += 1
 
         print("-----------------")
         print("Is equilibrated; starting sampling...")
@@ -169,9 +169,9 @@ def sample(job):
         job.doc.pressure_std = np.std(uncorr_sample)
         job.doc.pressure_sem = np.std(uncorr_sample) / (len(uncorr_sample)**0.5)
 
-        job.doc.total_steps = job.sp.n_steps + (run_num * job.sp.extra_steps)
+        job.doc.total_steps = job.sp.n_steps + (extra_runs*job.sp.extra_steps)
         job.doc.total_time_ns = job.doc.total_steps*job.doc.real_timestep.to("ns")
-        job.doc.n_runs = run_num
+        job.doc.extra_runs = extra_runs 
         job.doc.done = True
 
 
