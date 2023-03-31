@@ -6,6 +6,7 @@ dependencies:
   - freud
   - gsd
   - hoomd=3.7=*gpu*
+  - jupyter
   - matplotlib
   - mbuild
   - mdanalysis
