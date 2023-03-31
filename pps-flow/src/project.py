@@ -104,6 +104,7 @@ def sample(job):
 
         gsd_path = os.path.join(job.ws, "trajectory.gsd")
         log_path = os.path.join(job.ws, "sim_data.txt")
+
         sim = Simulation(
             initial_state=system.hoomd_snapshot,
             forcefield=system.hoomd_forcefield,
@@ -119,7 +120,9 @@ def sample(job):
         job.doc.target_box = target_box
         job.doc.real_timestep = sim.real_timestep.to("fs")
         job.doc.real_timestep_units = "fs"
-
+        print("-----------------")
+        print("Running shrink step...")
+        print("-----------------")
         sim.run_update_volume(
                 final_box_lengths=target_box,
                 n_steps=job.sp.shrink_steps,
@@ -127,12 +130,10 @@ def sample(job):
                 tau_kt=job.sp.tau_kt,
                 kT=job.sp.shrink_kT
         )
-
-        sim.run_NVT(
-                kT=job.sp.kT,
-                n_steps=job.sp.n_steps,
-                tau_kt=job.sp.tau_kt
-        )
+        print("-----------------")
+        print("Shrink step finished; running NVT...")
+        print("-----------------")
+        sim.run_NVT(kT=job.sp.kT, n_steps=job.sp.n_steps, tau_kt=job.sp.tau_kt)
 
         run_num = 1
         equilibrated = False
@@ -142,18 +143,30 @@ def sample(job):
             pressure = data["mdcomputeThermodynamicQuantitiespressure"]
             shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq) 
             equilibrated = is_equil(pressure[shrink_cut:], threshold_neff=5000)
+            print("-----------------")
             print(f"Not yet equilibrated. Starting run {run_num + 1}.")
+            print("-----------------")
             sim.run_NVT(kT=job.sp.kT, n_steps=2e6, tau_kt=job.sp.tau_kt)
             run_num += 1
 
+        print("-----------------")
         print("Is equilibrated; starting sampling...")
+        print("-----------------")
         data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
         pressure = data["mdcomputeThermodynamicQuantitiespressure"]
         shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq) 
-        
-
-
-
+        uncorr_sample, uncorr_indices, prod_start, ineff, Neff = equil_sample(
+                pressure[shrink_cut:],
+                threshold_fraction=0.50,
+                threshold_neff=5000
+        )
+        job.doc.uncorr_indices = list(uncorr_indices)
+        job.doc.prod_start = prod_start
+        job.doc.average_pressure = np.mean(uncorr_sample)
+        job.doc.pressure_std = np.std(uncorr_sample)
+        job.doc.pressure_sem = np.std(uncorr_sample) / (len(uncorr_sample)**0.5)
+        job.doc.n_runs = run_num
+        job.doc.done = True
 
 
 if __name__ == "__main__":
