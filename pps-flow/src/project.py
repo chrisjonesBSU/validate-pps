@@ -175,7 +175,7 @@ def sample(job):
         job.doc.pressure_sem = np.std(uncorr_sample) / (len(uncorr_sample)**0.5)
 
         job.doc.total_steps = job.sp.n_steps + (extra_runs*job.sp.extra_steps)
-        job.doc.total_time_ns = job.doc.total_steps*job.doc.real_timestep.to("ns")
+        job.doc.total_time_ns = job.doc.total_steps*job.doc.real_timestep
         job.doc.extra_runs = extra_runs
         job.doc.done = True
 
