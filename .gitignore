@@ -1,3 +1,11 @@
+# Signac stuff
+
+signac.rc
+signac_statepoints.json
+signac_project_document.json
+workspace/
+*.out*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
