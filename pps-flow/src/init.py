@@ -23,42 +23,35 @@ def get_parameters():
     parameters = OrderedDict()
 
     ### SYSTEM GENERATION PARAMETERS ###
-    parameters["density"] = [
-            0.8,
-            0.85,
-            0.90,
-            0.95,
-            1.0,
-            1.05,
-            1.1,
-            1.15,
-            1.20,
-            1.25,
-            1.3,
-            1.35,
-            1.4,
-    ]
+    parameters["density"] = [1.0]
     parameters["chain_lengths"] = [15]
     parameters["n_compounds"] = [60]
-    parameters["remove_hydrogens"] = [True, False]
-    parameters["remove_charges"] = [True, False]
+    parameters["remove_hydrogens"] = [
+            True,
+            False
+    ]
+    parameters["remove_charges"] = [
+            True,
+            False
+    ]
 
     ### SIMULATION PARAMETERS ###
     parameters["tau_kt"] = [0.1]
     parameters["dt"] = [0.0001]
     parameters["r_cut"] = [2.5]
     parameters["sim_seed"] = [42]
-    parameters["shrink_steps"] = [2e7]
+    parameters["shrink_steps"] = [3e7]
     parameters["shrink_period"] = [100000]
     parameters["shrink_kT"] = [8.0]
-    parameters["gsd_write_freq"] = [100000]
+    parameters["gsd_write_freq"] = [200000]
     parameters["log_write_freq"] = [10000]
 
     ### Quench related parameters ###
     parameters["kT"] = [1.4]
+    parameters["pressure"] = [0.015, 0.05, 0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0]
     parameters["n_steps"] = [1e7]
     parameters["extra_steps"] = [5e6]
-    parameters["neff_samples"] = [10000]
+    parameters["neff_samples"] = [5000]
     return list(parameters.keys()), list(product(*parameters.values()))
 
 

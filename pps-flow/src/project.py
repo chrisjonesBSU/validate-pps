@@ -79,8 +79,12 @@ def sample(job):
     import numpy as np
 
     with job:
+        print("------------------------------------")
+        print("------------------------------------")
         print("JOB ID NUMBER:")
         print(job.id)
+        print("------------------------------------")
+        print("------------------------------------")
 
         system = Pack(
                 molecule=PPS,
@@ -100,8 +104,11 @@ def sample(job):
         )
 
         job.doc.ref_distance = system.reference_distance
+        job.doc.ref_distance_units = "angstrom"
         job.doc.ref_mass = system.reference_mass
+        job.doc.ref_mass_units = "amu"
         job.doc.ref_energy = system.reference_energy
+        job.doc.ref_energy_units = "kcal/mol"
 
         gsd_path = os.path.join(job.ws, "trajectory.gsd")
         log_path = os.path.join(job.ws, "sim_data.txt")
@@ -115,7 +122,7 @@ def sample(job):
             log_file_name=log_path,
             log_write_freq=job.sp.log_write_freq
         )
-        sim.pickle_forcefield(job.fn("pps_forcefield.pickle"))
+        sim.pickle_forcefield(job.fn("forcefield.pickle"))
 
         sim.reference_distance = system.reference_distance
         sim.reference_mass = system.reference_mass
@@ -125,9 +132,9 @@ def sample(job):
         job.doc.target_box = target_box
         job.doc.real_timestep = sim.real_timestep.to("fs")
         job.doc.real_timestep_units = "fs"
-        print("-----------------")
+        print("----------------------")
         print("Running shrink step...")
-        print("-----------------")
+        print("----------------------")
         kT_ramp = sim.temperature_ramp(
                 n_steps=job.sp.shrink_steps,
                 kT_start=job.sp.shrink_kT,
@@ -140,10 +147,16 @@ def sample(job):
                 tau_kt=job.sp.tau_kt,
                 kT=kT_ramp
         )
-        print("-----------------")
-        print("Shrink step finished; running NVT...")
-        print("-----------------")
-        sim.run_NVT(kT=job.sp.kT, n_steps=job.sp.n_steps, tau_kt=job.sp.tau_kt)
+        print("------------------------------------")
+        print("Shrink step finished; running NPT...")
+        print("------------------------------------")
+        sim.run_NPT(
+                kT=job.sp.kT,
+                pressure=job.sp.pressure,
+                n_steps=job.sp.n_steps,
+                tau_kt=job.sp.tau_kt,
+                tau_pressure=job.sp.tau_pressure
+        )
 
         job.doc.shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq)
         extra_runs = 0
@@ -151,49 +164,49 @@ def sample(job):
         while not equilibrated:
         # Open up log file, see if pressure and PE are equilibrated
             data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
-            pressure = data["mdcomputeThermodynamicQuantitiespressure"]
+            volume = data["mdcomputeThermodynamicQuantitiesvolume"]
             pe = data["mdcomputeThermodynamicQuantitiespotential_energy"]
-            pressure_eq = is_equilibrated(
-                    pressure[job.doc.shrink_cut:],
-                    threshold_neff=job.sp.neff_samples
+            volume_eq = is_equilibrated(
+                    volume[job.doc.shrink_cut+1:],
+                    threshold_neff=job.sp.neff_samples,
+                    threshold_fraction=0.50,
             )[0]
             pe_eq = is_equilibrated(
                     pe[job.doc.shrink_cut:],
                     threshold_neff=job.sp.neff_samples
+                    threshold_fraction=0.50,
             )[0]
-
-            if pressure_eq is True and pe_eq is True:
-                equilibrated = True
-            print("-----------------")
+            equilibrated = all([volume_eq, pe_eq])
+            print("-----------------------------------------------------")
             print(f"Not yet equilibrated. Starting run {extra_runs + 1}.")
-            print("-----------------")
-            sim.run_NVT(
+            print("-----------------------------------------------------")
+            sim.run_NPT(
                     kT=job.sp.kT,
+                    pressure=job.sp.pressure,
                     n_steps=job.sp.extra_steps,
-                    tau_kt=job.sp.tau_kt
+                    tau_kt=job.sp.tau_kt,
+                    tau_pressure=job.sp.tau_pressure
             )
             extra_runs += 1
 
-        print("-----------------")
+        print("-------------------------------------")
         print("Is equilibrated; starting sampling...")
-        print("-----------------")
-        # Log pressure
-        data = np.genfromtxt(job.fn("sim_data.txt"), names=True)
-        pressure = data["mdcomputeThermodynamicQuantitiespressure"]
+        print("-------------------------------------")
+        sim.save_restart_gsd(job.fn("restart.gsd"))
+        # Log volume 
         uncorr_sample, uncorr_indices, prod_start, Neff = equil_sample(
-                pressure[job.doc.shrink_cut:],
+                volume[job.doc.shrink_cut:],
                 threshold_fraction=0.50,
                 threshold_neff=job.sp.neff_samples
         )
-        np.savetxt("pressure_sample_indices.txt", uncorr_indices)
-        np.savetxt("pressure.txt", uncorr_sample)
-        # Save pressure results in the job doc
-        job.doc.pressure_start = prod_start
-        job.doc.average_pressure = np.mean(uncorr_sample)
-        job.doc.pressure_std = np.std(uncorr_sample)
-        job.doc.pressure_sem = np.std(uncorr_sample)/(len(uncorr_sample)**0.5)
+        np.savetxt("vol_sample_indices.txt", uncorr_indices)
+        np.savetxt("volume.txt", uncorr_sample)
+        # Save volume results in the job doc
+        job.doc.vol_start = prod_start
+        job.doc.average_vol = np.mean(uncorr_sample)
+        job.doc.vol_std = np.std(uncorr_sample)
+        job.doc.vol_sem = np.std(uncorr_sample)/(len(uncorr_sample)**0.5)
         # Log potential energy
-        pe = data["mdcomputeThermodynamicQuantitiespotential_energy"]
         uncorr_sample, uncorr_indices, prod_start, Neff = equil_sample(
                 pe[job.doc.shrink_cut:],
                 threshold_fraction=0.50,
@@ -207,11 +220,16 @@ def sample(job):
         job.doc.pe_std = np.std(uncorr_sample)
         job.doc.pe_sem = np.std(uncorr_sample)/(len(uncorr_sample)**0.5)
         # Add a few more things to the job job
+        job.doc.total_mass = sim.mass.to("g")
+        job.doc.total_mass_units = "g"
         job.doc.total_steps = job.sp.n_steps + (extra_runs*job.sp.extra_steps)
-        job.doc.total_time = job.doc.total_steps*job.doc.real_timestep
+        job.doc.total_time = job.doc.total_steps*job.doc.real_timestep*1e-6
+        job.doc.total_time_units = "ns"
         job.doc.extra_runs = extra_runs
-        job.doc.done = True
         job.doc.box_nm = sim.box_lengths.to("nm")
+        job.doc.box_cm = sim.box_lengths.to("cm")
+        job.doc.done = True
+        job.doc.sampled = True
 
 
 if __name__ == "__main__":
