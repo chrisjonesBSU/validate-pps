@@ -173,7 +173,7 @@ def sample(job):
             )[0]
             pe_eq = is_equilibrated(
                     pe[job.doc.shrink_cut:],
-                    threshold_neff=job.sp.neff_samples
+                    threshold_neff=job.sp.neff_samples,
                     threshold_fraction=0.50,
             )[0]
             equilibrated = all([volume_eq, pe_eq])
@@ -193,7 +193,7 @@ def sample(job):
         print("Is equilibrated; starting sampling...")
         print("-------------------------------------")
         sim.save_restart_gsd(job.fn("restart.gsd"))
-        # Log volume 
+        # Log volume
         uncorr_sample, uncorr_indices, prod_start, Neff = equil_sample(
                 volume[job.doc.shrink_cut:],
                 threshold_fraction=0.50,
