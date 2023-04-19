@@ -123,6 +123,7 @@ def sample(job):
             log_write_freq=job.sp.log_write_freq
         )
         sim.pickle_forcefield(job.fn("forcefield.pickle"))
+        sim.adjust_sigma(scale_by=job.sp.sigma_scale)
 
         sim.reference_distance = system.reference_distance
         sim.reference_mass = system.reference_mass

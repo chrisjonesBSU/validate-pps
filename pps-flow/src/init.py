@@ -26,12 +26,12 @@ def get_parameters():
     parameters["chain_lengths"] = [15]
     parameters["n_compounds"] = [60]
     parameters["remove_hydrogens"] = [
-            #True,
-            False
+            True,
+            #False
     ]
     parameters["remove_charges"] = [
-            #True,
-            False
+            True,
+            #False
     ]
 
     ### SIMULATION PARAMETERS ###
@@ -45,15 +45,28 @@ def get_parameters():
     parameters["shrink_kT"] = [8.0]
     parameters["gsd_write_freq"] = [200000]
     parameters["log_write_freq"] = [10000]
+    parameters["sigma_scale"] = [0.97, 0.96, 0.95, 0.92]
+    parameters["shrink_kT"] = [8.0]
 
     ### Quench related parameters ###
     parameters["kT"] = [1.4]
     parameters["pressure"] = [
-            0.015, 0.05, 0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0
+            0.015,
+            #0.05,
+            0.1,
+            0.5,
+            1.0,
+            #1.5,
+            2.0,
+            #2.5,
+            3.0,
+            #3.5,
+            4.0,
+            5.0
     ]
     parameters["n_steps"] = [1e7]
     parameters["extra_steps"] = [5e6]
-    parameters["neff_samples"] = [5000]
+    parameters["neff_samples"] = [3000]
     return list(parameters.keys()), list(product(*parameters.values()))
 
 
