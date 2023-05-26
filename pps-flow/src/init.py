@@ -23,8 +23,8 @@ def get_parameters():
 
     ### SYSTEM GENERATION PARAMETERS ###
     parameters["density"] = [1.0]
-    parameters["chain_lengths"] = [15]
-    parameters["n_compounds"] = [60]
+    parameters["chain_lengths"] = [20]
+    parameters["n_compounds"] = [75]
     parameters["remove_hydrogens"] = [
             True,
             #False
@@ -35,43 +35,34 @@ def get_parameters():
     ]
 
     ### SIMULATION PARAMETERS ###
-    parameters["tau_kt"] = [0.1]
-    parameters["tau_pressure"] = [0.1]
-    parameters["dt"] = [0.0001]
+    parameters["tau_kt"] = [100]
+    parameters["tau_pressure"] = [700]
+    parameters["dt"] = [0.0003]
     parameters["r_cut"] = [2.5]
     parameters["sim_seed"] = [42]
-    parameters["shrink_steps"] = [3e7]
-    parameters["shrink_period"] = [100000]
+    parameters["shrink_steps"] = [2e7]
+    parameters["shrink_period"] = [10000]
     parameters["shrink_kT"] = [8.0]
     parameters["gsd_write_freq"] = [200000]
     parameters["log_write_freq"] = [10000]
-    parameters["sigma_scale"] = [0.97, 0.96, 0.95, 0.92]
-    parameters["shrink_kT"] = [8.0]
+    parameters["sigma_scale"] = [0.955]
 
     ### Quench related parameters ###
-    parameters["kT"] = [1.4]
-    parameters["pressure"] = [
-            0.015,
-            #0.05,
-            0.1,
-            0.5,
-            1.0,
-            #1.5,
-            2.0,
-            #2.5,
-            3.0,
-            #3.5,
-            4.0,
-            5.0
+    parameters["kT"] = [
+            1.2, 1.3, 1.4, 1.5, 1.6,
+            1.7, 1.8, 1.9, 2.0, 2.1,
+            2.2, 2.3, 2.4, 2.5, 2.6,
+            2.7, 2.8, 2.9, 3.0, 3.1, 3.2
     ]
-    parameters["n_steps"] = [1e7]
+    parameters["pressure"] = [0.0027]
+    parameters["n_steps"] = [2e7]
     parameters["extra_steps"] = [5e6]
-    parameters["neff_samples"] = [3000]
+    parameters["neff_samples"] = [1000]
     return list(parameters.keys()), list(product(*parameters.values()))
 
 
 def main():
-    project = signac.init_project("pps") # Set the signac project name
+    project = signac.init_project("pps-val") # Set the signac project name
     param_names, param_combinations = get_parameters()
     # Create the generate jobs
     for params in param_combinations:

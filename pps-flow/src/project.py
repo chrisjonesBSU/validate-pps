@@ -103,13 +103,6 @@ def sample(job):
                 remove_hydrogens=job.sp.remove_hydrogens
         )
 
-        job.doc.ref_distance = system.reference_distance
-        job.doc.ref_distance_units = "angstrom"
-        job.doc.ref_mass = system.reference_mass
-        job.doc.ref_mass_units = "amu"
-        job.doc.ref_energy = system.reference_energy
-        job.doc.ref_energy_units = "kcal/mol"
-
         gsd_path = os.path.join(job.ws, "trajectory.gsd")
         log_path = os.path.join(job.ws, "sim_data.txt")
 
@@ -123,11 +116,17 @@ def sample(job):
             log_write_freq=job.sp.log_write_freq
         )
         sim.pickle_forcefield(job.fn("forcefield.pickle"))
-        sim.adjust_sigma(scale_by=job.sp.sigma_scale)
 
-        sim.reference_distance = system.reference_distance
+        sim.reference_distance = system.reference_distance * job.sp.sigma_scale
         sim.reference_mass = system.reference_mass
         sim.reference_energy = system.reference_energy
+
+        job.doc.ref_distance = sim.reference_distance
+        job.doc.ref_distance_units = "angstrom"
+        job.doc.ref_mass = sim.reference_mass
+        job.doc.ref_mass_units = "amu"
+        job.doc.ref_energy = sim.reference_energy
+        job.doc.ref_energy_units = "kcal/mol"
 
         target_box = system.target_box*10/job.doc.ref_distance
         job.doc.target_box = target_box
@@ -145,7 +144,7 @@ def sample(job):
                 final_box_lengths=target_box,
                 n_steps=job.sp.shrink_steps,
                 period=job.sp.shrink_period,
-                tau_kt=job.sp.tau_kt,
+                tau_kt=job.sp.tau_kt*sim.dt,
                 kT=kT_ramp
         )
         print("------------------------------------")
@@ -155,8 +154,8 @@ def sample(job):
                 kT=job.sp.kT,
                 pressure=job.sp.pressure,
                 n_steps=job.sp.n_steps,
-                tau_kt=job.sp.tau_kt,
-                tau_pressure=job.sp.tau_pressure
+                tau_kt=job.sp.tau_kt*sim.dt,
+                tau_pressure=job.sp.tau_pressure*sim.dt
         )
 
         job.doc.shrink_cut = int(job.sp.shrink_steps/job.sp.log_write_freq)
@@ -185,8 +184,8 @@ def sample(job):
                     kT=job.sp.kT,
                     pressure=job.sp.pressure,
                     n_steps=job.sp.extra_steps,
-                    tau_kt=job.sp.tau_kt,
-                    tau_pressure=job.sp.tau_pressure
+                    tau_kt=job.sp.tau_kt*sim.dt,
+                    tau_pressure=job.sp.tau_pressure*sim.dt
             )
             extra_runs += 1
 
@@ -205,8 +204,14 @@ def sample(job):
         # Save volume results in the job doc
         job.doc.vol_start = prod_start
         job.doc.average_vol = np.mean(uncorr_sample)
+        job.doc.avgerage_vol_ang = job.doc.average_vol * (job.ref_distance**3)
+        job.doc.average_vol_cm = job.doc.average_vol_ang * ((1e-8)**3)
         job.doc.vol_std = np.std(uncorr_sample)
         job.doc.vol_sem = np.std(uncorr_sample)/(len(uncorr_sample)**0.5)
+        job.doc.total_mass = sim.mass.to("g")
+        job.doc.total_mass_units = "g"
+        job.doc.average_density = job.doc.total_mass / job.doc.average_vol_cm
+
         # Log potential energy
         uncorr_sample, uncorr_indices, prod_start, Neff = equil_sample(
                 pe[job.doc.shrink_cut:],
@@ -220,15 +225,11 @@ def sample(job):
         job.doc.average_pe = np.mean(uncorr_sample)
         job.doc.pe_std = np.std(uncorr_sample)
         job.doc.pe_sem = np.std(uncorr_sample)/(len(uncorr_sample)**0.5)
-        # Add a few more things to the job job
-        job.doc.total_mass = sim.mass.to("g")
-        job.doc.total_mass_units = "g"
+        # Add a few more things to the job
         job.doc.total_steps = job.sp.n_steps + (extra_runs*job.sp.extra_steps)
         job.doc.total_time = job.doc.total_steps*job.doc.real_timestep*1e-6
         job.doc.total_time_units = "ns"
         job.doc.extra_runs = extra_runs
-        job.doc.box_nm = sim.box_lengths.to("nm")
-        job.doc.box_cm = sim.box_lengths.to("cm")
         job.doc.done = True
         job.doc.sampled = True
 
