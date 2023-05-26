@@ -204,7 +204,7 @@ def sample(job):
         # Save volume results in the job doc
         job.doc.vol_start = prod_start
         job.doc.average_vol = np.mean(uncorr_sample)
-        job.doc.avgerage_vol_ang = job.doc.average_vol * (job.ref_distance**3)
+        job.doc.avgerage_vol_ang = job.doc.average_vol*(job.doc.ref_distance**3)
         job.doc.average_vol_cm = job.doc.average_vol_ang * ((1e-8)**3)
         job.doc.vol_std = np.std(uncorr_sample)
         job.doc.vol_sem = np.std(uncorr_sample)/(len(uncorr_sample)**0.5)
