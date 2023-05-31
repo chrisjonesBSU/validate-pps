@@ -36,7 +36,7 @@ def get_parameters():
 
     ### SIMULATION PARAMETERS ###
     parameters["tau_kt"] = [100]
-    parameters["tau_pressure"] = [700]
+    parameters["tau_pressure"] = [400]
     parameters["dt"] = [0.0003]
     parameters["r_cut"] = [2.5]
     parameters["sim_seed"] = [42]
